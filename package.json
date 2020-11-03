@@ -1,0 +1,67 @@
+{
+  "version": "0.0.0",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "src"
+  ],
+  "engines": {
+    "node": ">=10"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chengcyber/rollup-plugin-monaco-editor"
+  },
+  "scripts": {
+    "start": "tsdx watch",
+    "start:example": "http-server -c-1 example",
+    "build": "tsdx build",
+    "build:example": "(cd example && rollup -c rollup.config.js)",
+    "test": "tsdx test",
+    "lint": "tsdx lint",
+    "prepare": "tsdx build",
+    "size": "size-limit",
+    "analyze": "size-limit --why"
+  },
+  "peerDependencies": {},
+  "husky": {
+    "hooks": {
+      "pre-commit": "tsdx lint"
+    }
+  },
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
+  "name": "rollup-plugin-monaco-editor",
+  "author": "Cheng Liu<liucheng.tech@outlook.com>",
+  "module": "dist/rollup-plugin-monaco-editor.esm.js",
+  "size-limit": [
+    {
+      "path": "dist/rollup-plugin-monaco-editor.cjs.production.min.js",
+      "limit": "10 KB"
+    },
+    {
+      "path": "dist/rollup-plugin-monaco-editor.esm.js",
+      "limit": "10 KB"
+    }
+  ],
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^16.0.0",
+    "@rollup/plugin-node-resolve": "^10.0.0",
+    "@size-limit/preset-small-lib": "^4.7.0",
+    "http-server": "^0.12.3",
+    "husky": "^4.3.0",
+    "monaco-editor": "0.21.2",
+    "rollup": "^2.33.1",
+    "rollup-plugin-postcss": "^3.1.8",
+    "size-limit": "^4.7.0",
+    "tsdx": "^0.14.1",
+    "tslib": "^2.0.3",
+    "typescript": "^4.0.5"
+  }
+}
