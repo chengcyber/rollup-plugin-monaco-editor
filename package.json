@@ -3,6 +3,11 @@
   "license": "MIT",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
+  "keywords": [
+    "rollup",
+    "plugin",
+    "monaco-editor"
+  ],
   "files": [
     "dist",
     "src"
