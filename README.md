@@ -69,12 +69,6 @@ visit `http://localhost:8080` to see the simple demo.
 yarn start
 ```
 
-# Known Issues
-
-## Languages won't work when init monaco editor synchronously when format is esm
-
-This is a tricky issue, languages need `monaco` API to register language. For now languages are imported via dynamic import, this leads to the issue if you `create` the monaco editor after importing the monaco module immediately. It might be fixed after the chrome supports top-level await, but i can't find a good solution right now.
-
 # LICENSE
 
 MIT
