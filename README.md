@@ -2,7 +2,7 @@
 
 > A rollup plugin to import monaco editor
 
-# Enviroment
+# Environment
 
 - monaco-editor: `0.21.2`
 
