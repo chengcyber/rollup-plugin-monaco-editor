@@ -1,8 +1,9 @@
 import path from 'path';
+import { promises as fs } from 'fs';
 import type { Plugin } from 'rollup';
 import { languagesArr } from './languages';
 import { featuresArr } from './features';
-import { isWrappedId, FEAT_SUFFIX, LANG_SUFFIX, wrapId } from './helpers';
+import { isWrappedId, FEAT_SUFFIX, wrapId } from './helpers';
 
 type LanguageConfig = typeof languagesArr[number];
 type LanguagesById = {
@@ -12,7 +13,7 @@ const languagesById = languagesArr.reduce<LanguagesById>((languagesById, languag
   (languagesById as any)[language.label] = language;
   return languagesById;
 }, {} as LanguagesById);
-type LanguageKeys = keyof LanguagesById;
+type LanguageKey = keyof LanguagesById;
 
 type FeatureConfig = typeof featuresArr[number];
 type FeaturesById = {
@@ -22,12 +23,12 @@ const featuresById = featuresArr.reduce<FeaturesById>((featuresById, feature) =>
   (featuresById as any)[feature.label] = feature;
   return featuresById;
  }, {} as FeaturesById );
- type FeatureKeys = keyof FeaturesById;
+ type FeatureKey = keyof FeaturesById;
 
 
 
 const MONACO_ENTRY_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]editor[/\\]editor.(api|main)/;
-const MONACO_LANG_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]language[/\\]/;
+// const MONACO_LANG_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]language[/\\]/;
 const MONACO_BASE_WORKER_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]base[/\\]worker[/\\]defaultWorkerFactory/;
 
 const EDITOR_MODULE = {
@@ -37,7 +38,7 @@ const EDITOR_MODULE = {
     id: 'vs/editor/editor',
     entry: 'vs/editor/editor.worker',
   },
-};
+} as const;
 
 /**
  * Return a resolved path for a given Monaco file.
@@ -62,7 +63,7 @@ function flatArr<T extends any>(items: T[]) {
   }, [] as any[]);
 }
 
-function getFeaturesIds<T extends string, R extends FeatureKeys>(userFeatures: T[]): R[] {
+function getFeaturesIds<T extends string, R extends FeatureKey>(userFeatures: T[]): R[] {
   function notContainedIn(arr: string[]) {
     return (element: string) => arr.indexOf(element) === -1;
   }
@@ -87,14 +88,14 @@ function getFeaturesIds<T extends string, R extends FeatureKeys>(userFeatures: T
 export default monaco;
 
 export interface MonacoPluginOptions {
-  languages?: LanguageKeys[];
-  features?: FeatureKeys[];
+  languages?: LanguageKey[];
+  features?: FeatureKey[];
   esm?: boolean;
   pathPrefix?: string;
 }
 
 function monaco(options: MonacoPluginOptions = {}): Plugin {
-  let languages = options.languages || Object.keys(languagesById) as LanguageKeys[];
+  let languages = options.languages || Object.keys(languagesById) as LanguageKey[];
   let features = getFeaturesIds((options.features || []));
   let isESM = false;
   if ('esm' in options) {
@@ -106,8 +107,8 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
   const featureConfigs = coalesce(features.map(id => featuresById[id]));
 
   type MonacoModules = (
-    | typeof languageConfigs[number]
-    | typeof featureConfigs[number]
+    | LanguageConfig
+    | FeatureConfig
     | typeof EDITOR_MODULE
   )[];
   const modules = ([EDITOR_MODULE] as MonacoModules)
@@ -203,8 +204,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
     },
     resolveId(importee, _importer) {
       const isFeatureProxy = isWrappedId(importee, FEAT_SUFFIX);
-      const isLanguageProxy = isWrappedId(importee, LANG_SUFFIX);
-      if (isFeatureProxy || isLanguageProxy) {
+      if (isFeatureProxy) {
         return importee;
       }
       return null;
@@ -215,36 +215,15 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
           resolveMonacoPath(importPath)
         );
         const featureImports = featureImportIds
-          .map(id => `import ${JSON.stringify(id)}`)
-          .join(';\n');
+          .map(id => `import ${JSON.stringify(id)};`)
+          .join('\n');
         return `${featureImports}`;
-      }
-      if (isWrappedId(id, LANG_SUFFIX)) {
-        const languageImportIds = languagePaths.map(importPath =>
-          resolveMonacoPath(importPath)
-        );
-        const languageImports = languageImportIds
-          .map(id => `import ${JSON.stringify(id)}`)
-          .join(';\n');
-        return `${languageImports}`;
       }
       return null;
     },
-    transform(code, id) {
+    async transform(code, id) {
       if (id.startsWith('\0')) {
         return null;
-      }
-      // fix circular deps issue
-      if (MONACO_LANG_RE.test(id)) {
-        // FIXME: better use magic string to remove import
-        code = code.replace(
-          /import\s['"]\.\.\/\.\.\/editor\/editor\.api\.js['"];?/,
-          ''
-        );
-        return {
-          code,
-          map: null,
-        };
       }
       // fix worker import esm
       if (isESM && MONACO_BASE_WORKER_RE.test(id)) {
@@ -258,13 +237,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         };
       }
       if (MONACO_ENTRY_RE.test(id)) {
-        // const refId = this.emitFile({
-        //   type: 'chunk',
-        //   id: wrapId(id, LANG_SUFFIX),
-        //   importer: id,
-        //   implicitlyLoadedAfterOneOf: [id],
-        // });
-        const arr = [
+        let arr = [
           ...(globals
             ? Object.keys(globals).map(
                 key => `self[${JSON.stringify(key)}] = ${globals[key]};`
@@ -272,8 +245,35 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
             : []),
           `import ${JSON.stringify(wrapId(id, FEAT_SUFFIX))};`,
           code,
-          `import(${JSON.stringify(wrapId(id, LANG_SUFFIX))});`,
         ];
+
+        // append languages code to editor.api
+        const languageImportIds = languagePaths.map(importPath =>
+          resolveMonacoPath(importPath)
+        );
+        const languageCodes = await Promise.all(languageImportIds.map(async (importId) => {
+         let c = (await fs.readFile(importId)).toString();
+          // 1. fix circular dependency
+          c = c.replace(
+            /import\s['"]\.\.\/\.\.\/editor\/editor\.api\.js['"];?/,
+            ''
+          );
+          // 2. fillers/monaco-editor-core is same with editor.api, remove it
+          c = c.replace(
+            /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/,
+            '',
+          )
+          // 3. import('./foo') -> import('$relative/foo');
+          const relative = path.relative(path.dirname(id), path.dirname(importId));
+          c = c.replace(
+            /import\('\.\//,
+            `import('${relative}/`,
+          )
+         return c;
+        }));
+
+        arr = arr.concat(languageCodes);
+
         return {
           code: arr.join('\n'),
           map: null,

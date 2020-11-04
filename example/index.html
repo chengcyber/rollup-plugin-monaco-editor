@@ -6,15 +6,16 @@
     <title>Monaco Editor Example</title>
   </head>
   <body>
-    <button id="btn">LOAD A MONACO EDITOR FOR JSON</button>
+    <!-- <button id="btn">LOAD A MONACO EDITOR FOR JSON</button> -->
+    <p>Monaco editor for JSON:</p>
     <div id="root" style="height: 300px;"></div>
     <script type="module">
       import { initMonaco } from '/dist/index.js';
-      // initMonaco();
-      const $btn = document.getElementById('btn');
-      $btn.addEventListener('click', () => {
-        initMonaco();
-      });
+      initMonaco();
+      // const $btn = document.getElementById('btn');
+      // $btn.addEventListener('click', () => {
+      //   initMonaco();
+      // });
     </script>
   </body>
 </html>

@@ -5,7 +5,7 @@ export const initMonaco = () => {
     monaco.editor.create(
         $root,
         {
-            value: '',
+            value: '// type your code...',
             language: 'json',
         },
     )

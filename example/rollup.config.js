@@ -15,7 +15,7 @@ export default {
         monaco({
             esm: true,
             languages: ['json'],
-            pathPrefix: 'dist',
+            pathPrefix: '/dist',
         }),
         resolve({
             mainFields: [

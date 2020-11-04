@@ -31,7 +31,7 @@ export default {
     postcss(),
     monaco({
       esm: true, // true if you set output.format is esm
-      pathPrefix: 'dist', // mostly same as output.dir
+      pathPrefix: '/dist', // mostly same as output.dir with a prefix slash
       languages: ['json'],
     }),
     resolve({
