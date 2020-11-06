@@ -34,19 +34,7 @@ export default {
       pathPrefix: '/dist', // mostly same as output.dir with a prefix slash
       languages: ['json'],
     }),
-    resolve({
-      mainFields: [
-        'exports',
-        'browser:module',
-        'browser',
-        'module',
-        'main',
-      ].filter(Boolean),
-      extensions: ['.mjs', '.cjs', '.js', '.json'], // Default: [ '.mjs', '.js', '.json', '.node' ]
-      // whether to prefer built-in modules (e.g. `fs`, `path`) or local ones with the same names
-      preferBuiltins: true, // Default: true
-      dedupe: [], // userDefinedRollup.dedupe,
-    }),
+    resolve(),
     commonjs(),
   ],
 };
