@@ -4,6 +4,7 @@ import type { Plugin } from 'rollup';
 import { languagesArr } from './languages';
 import { featuresArr } from './features';
 import { isWrappedId, FEAT_SUFFIX, wrapId } from './helpers';
+import { slash } from './slash';
 
 type LanguageConfig = typeof languagesArr[number];
 type LanguagesById = {
@@ -165,33 +166,34 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
   return {
     name: 'monaco',
     options(inputOptions) {
+      const ret = { ...inputOptions };
       const mc = inputOptions.moduleContext;
       if ('function' === typeof mc) {
         // func
-        inputOptions.moduleContext = (id) => {
-          if (id.indexOf('node_modules/monaco-editor') >= 0) {
+        ret.moduleContext = (id) => {
+          if (slash(id).indexOf('node_modules/monaco-editor') >= 0) {
               return 'self';
           }
           return mc(id);
         }
       } else if (mc && 'object' === typeof mc) {
         // { id: string }
-        inputOptions.moduleContext = (id) => {
-          if (id.indexOf('node_modules/monaco-editor') >= 0) {
+        ret.moduleContext = (id) => {
+          if (slash(id).indexOf('node_modules/monaco-editor') >= 0) {
               return 'self';
           }
           return mc[id];
         }
       } else {
         // nullish
-        inputOptions.moduleContext = (id) => {
-          if (id.indexOf('node_modules/monaco-editor') >= 0) {
+        ret.moduleContext = (id) => {
+          if (slash(id).indexOf('node_modules/monaco-editor') >= 0) {
               return 'self';
           }
           return undefined;
         }
       }
-      return inputOptions;
+      return ret;
     },
     buildStart() {
       for (const [_label, relativePath] of Object.entries(workerPaths)) {
@@ -253,6 +255,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         );
         const languageCodes = await Promise.all(languageImportIds.map(async (importId) => {
          let c = (await fs.readFile(importId)).toString();
+          // FIXME: might be better to use magicString
           // 1. fix circular dependency
           c = c.replace(
             /import\s['"]\.\.\/\.\.\/editor\/editor\.api\.js['"];?/,
