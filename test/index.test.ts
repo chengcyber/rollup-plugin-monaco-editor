@@ -56,4 +56,28 @@ describe('basic', () => {
     expect(isContainEditorWorker).toBe(true);
     expect(isContainJsonWorker).toBe(true);
   }, 60000);
+
+  it('should not emit when no monaco-editor entry', async () => {
+    const bundle = await rollup({
+      input: path.resolve(__dirname, 'fixtures/no-monaco-editor.js'),
+      plugins: [
+        monaco({
+          // features: [],
+          languages: ['json'],
+        }),
+        postcss(),
+        resolve(),
+        commonjs(),
+      ],
+    });
+
+    const { output } = await bundle.generate({
+      exports: 'auto',
+      format: 'esm',
+      sourcemap: false,
+    });
+
+    expect(output.length).toBe(1);
+    expect(output[0].fileName).toBe('no-monaco-editor.js');
+  });
 });

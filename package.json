@@ -30,7 +30,6 @@
     "size": "size-limit",
     "analyze": "size-limit --why"
   },
-  "peerDependencies": {},
   "husky": {
     "hooks": {}
   },
@@ -53,6 +52,10 @@
       "limit": "10 KB"
     }
   ],
+  "peerDependencies": {
+    "monaco-editor": "0.21.2",
+    "rollup": "^2.33.1"
+  },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^16.0.0",
     "@rollup/plugin-node-resolve": "^10.0.0",

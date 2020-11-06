@@ -1,6 +1,6 @@
 import path from 'path';
 import { promises as fs } from 'fs';
-import type { Plugin } from 'rollup';
+import type { EmitFile, Plugin } from 'rollup';
 import { languagesArr } from './languages';
 import { featuresArr } from './features';
 import { isWrappedId, FEAT_SUFFIX, wrapId } from './helpers';
@@ -163,6 +163,21 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         })(${JSON.stringify(workerPaths, null, 2)})`,
   };
 
+  let workerChunksEmited: boolean = false;
+  function emitWorkerChunks(emitFile: EmitFile) {
+    if (workerChunksEmited) {
+      return;
+    }
+    workerChunksEmited = true;
+    for (const [_label, relativePath] of Object.entries(workerPaths)) {
+      emitFile({
+        type: 'chunk',
+        id: require.resolve(relativePath),
+        fileName: relativePath,
+      });
+    }
+  }
+
   return {
     name: 'monaco',
     options(inputOptions) {
@@ -194,15 +209,6 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         }
       }
       return ret;
-    },
-    buildStart() {
-      for (const [_label, relativePath] of Object.entries(workerPaths)) {
-        this.emitFile({
-          type: 'chunk',
-          id: require.resolve(relativePath),
-          fileName: relativePath,
-        });
-      }
     },
     resolveId(importee, _importer) {
       const isFeatureProxy = isWrappedId(importee, FEAT_SUFFIX);
@@ -239,6 +245,8 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         };
       }
       if (MONACO_ENTRY_RE.test(id)) {
+        emitWorkerChunks(this.emitFile);
+
         let arr = [
           ...(globals
             ? Object.keys(globals).map(
