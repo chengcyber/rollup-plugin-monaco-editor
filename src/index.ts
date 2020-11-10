@@ -97,7 +97,15 @@ export default monaco;
 export interface MonacoPluginOptions {
   languages?: LanguageKey[];
   features?: FeatureKey[];
+  /**
+   * Affects how web worker are imported
+   * @default rollup.outputOptions.format is esm or es
+   */
   esm?: boolean;
+  /**
+   * Path prefixes worker url
+   * @default rollup.outputOptions.dir with a leading slash
+   */
   pathPrefix?: string;
 }
 
@@ -109,7 +117,6 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
   if ('esm' in options) {
     isESM = !!options.esm;
   }
-  const pathPrefix = options.pathPrefix || '';
 
   const languageConfigs = coalesce(languages.map(id => languagesById[id]));
   const featureConfigs = coalesce(features.map(id => featuresById[id]));
@@ -146,30 +153,6 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
     workerPaths[label] = getMonacoRelativePath(entry);
   }
 
-  const globals: Record<string, string> = {
-    MonacoEnvironment: `(function (paths) {
-          function stripTrailingSlash(str) {
-            return str.replace(/\\/$/, '');
-          }
-          return {
-            getWorkerUrl: function (moduleId, label) {
-              var pathPrefix = ${JSON.stringify(pathPrefix)};
-              var result = (pathPrefix ? stripTrailingSlash(pathPrefix) + '/' : '') + paths[label];
-              if (/^((http:)|(https:)|(file:)|(\\/\\/))/.test(result)) {
-                var currentUrl = String(window.location);
-                var currentOrigin = currentUrl.substr(0, currentUrl.length - window.location.hash.length - window.location.search.length - window.location.pathname.length);
-                if (result.substring(0, currentOrigin.length) !== currentOrigin) {
-                  var js = '/*' + label + '*/importScripts("' + result + '");';
-                  var blob = new Blob([js], { type: 'application/javascript' });
-                  return URL.createObjectURL(blob);
-                }
-              }
-              return result;
-            }
-          };
-        })(${JSON.stringify(workerPaths, null, 2)})`,
-  };
-
   let workerChunksEmited: boolean = false;
   function emitWorkerChunks(emitFile: EmitFile) {
     if (workerChunksEmited) {
@@ -185,6 +168,8 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
     }
   }
 
+  let hasMonacoEntry = false;
+
   return {
     name: 'monaco',
     options(inputOptions) {
@@ -192,30 +177,106 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
       const mc = inputOptions.moduleContext;
       if ('function' === typeof mc) {
         // func
-        ret.moduleContext = (id) => {
+        ret.moduleContext = id => {
           if (slash(id).indexOf('node_modules/monaco-editor') >= 0) {
-              return 'self';
+            return 'self';
           }
           return mc(id);
-        }
+        };
       } else if (mc && 'object' === typeof mc) {
         // { id: string }
-        ret.moduleContext = (id) => {
+        ret.moduleContext = id => {
           if (slash(id).indexOf('node_modules/monaco-editor') >= 0) {
-              return 'self';
+            return 'self';
           }
           return mc[id];
-        }
+        };
       } else {
         // nullish
-        ret.moduleContext = (id) => {
+        ret.moduleContext = id => {
           if (slash(id).indexOf('node_modules/monaco-editor') >= 0) {
-              return 'self';
+            return 'self';
           }
           return undefined;
-        }
+        };
       }
       return ret;
+    },
+    renderChunk(code, chunk, outputOptions) {
+      if (!hasMonacoEntry) {
+        return null;
+      }
+      let modifiedCode: string | null = null;
+      const containsMonacoEntryModule = Array.from(
+        this.getModuleIds()
+      ).some(id => MONACO_ENTRY_RE.test(id));
+      const isWorkerChunk = Object.values(workerPaths).includes(chunk.fileName);
+      const { format } = outputOptions;
+      if (containsMonacoEntryModule && !isWorkerChunk) {
+        if (format === 'es' || isESM) {
+          // return new Worker(globals.MonacoEnvironment.getWorkerUrl(workerId, label));
+          // FIXME: use this.parse to handle this
+          modifiedCode = code.replace(
+            /return new Worker\(globals\.MonacoEnvironment\.getWorkerUrl\(workerId, label\)\);/g,
+            `return new Worker(globals.MonacoEnvironment.getWorkerUrl(workerId, label), { type: 'module' });`
+          );
+        }
+        if (chunk.isEntry) {
+          // inject globals
+          let pathPrefix = options.pathPrefix;
+          if (!pathPrefix) {
+            const { dir } = outputOptions;
+            if (!dir) {
+              this.warn('rollup outputOptions.dir is missing');
+            } else {
+              pathPrefix = dir;
+              if (!pathPrefix.startsWith('/')) {
+                pathPrefix = `/${pathPrefix}`;
+              }
+            }
+          }
+          if (!pathPrefix) {
+            pathPrefix = '';
+          }
+          const globals: Record<string, string> = {
+            MonacoEnvironment: `(function (paths) {
+            function stripTrailingSlash(str) {
+              return str.replace(/\\/$/, '');
+            }
+            return {
+              getWorkerUrl: function (moduleId, label) {
+                var pathPrefix = ${JSON.stringify(pathPrefix)};
+                var result = (pathPrefix ? stripTrailingSlash(pathPrefix) + '/' : '') + paths[label];
+                if (/^((http:)|(https:)|(file:)|(\\/\\/))/.test(result)) {
+                  var currentUrl = String(window.location);
+                  var currentOrigin = currentUrl.substr(0, currentUrl.length - window.location.hash.length - window.location.search.length - window.location.pathname.length);
+                  if (result.substring(0, currentOrigin.length) !== currentOrigin) {
+                    var js = '/*' + label + '*/importScripts("' + result + '");';
+                    var blob = new Blob([js], { type: 'application/javascript' });
+                    return URL.createObjectURL(blob);
+                  }
+                }
+                return result;
+              }
+            };
+          })(${JSON.stringify(workerPaths, null, 2)})`,
+          };
+          const arr = [
+            ...(globals
+              ? Object.keys(globals).map(
+                  key => `self[${JSON.stringify(key)}] = ${globals[key]};`
+                )
+              : []),
+            modifiedCode || code,
+          ];
+
+          modifiedCode = arr.join('\n');
+        }
+      }
+      if (modifiedCode) {
+        return modifiedCode;
+      }
+      return null;
     },
     resolveId(importee, _importer) {
       const isFeatureProxy = isWrappedId(importee, FEAT_SUFFIX);
@@ -240,55 +301,40 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
       if (id.startsWith('\0')) {
         return null;
       }
-      // fix worker import esm
-      if (isESM && MONACO_BASE_WORKER_RE.test(id)) {
-        code = code.replace(
-          'return new Worker(globals.MonacoEnvironment.getWorkerUrl(workerId, label));',
-          `return new Worker(globals.MonacoEnvironment.getWorkerUrl(workerId, label), { type: 'module' });`
-        );
-        return {
-          code,
-          map: null,
-        };
-      }
       if (MONACO_ENTRY_RE.test(id)) {
+        hasMonacoEntry = true;
+        // emit workers
         emitWorkerChunks(this.emitFile);
 
-        let arr = [
-          ...(globals
-            ? Object.keys(globals).map(
-                key => `self[${JSON.stringify(key)}] = ${globals[key]};`
-              )
-            : []),
-          `import ${JSON.stringify(wrapId(id, FEAT_SUFFIX))};`,
-          code,
-        ];
+        let arr = [`import ${JSON.stringify(wrapId(id, FEAT_SUFFIX))};`, code];
 
         // append languages code to editor.api
         const languageImportIds = languagePaths.map(importPath =>
           resolveMonacoPath(importPath)
         );
-        const languageCodes = await Promise.all(languageImportIds.map(async (importId) => {
-         let c = (await fs.readFile(importId)).toString();
-          // FIXME: might be better to use magicString
-          // 1. fix circular dependency
-          c = c.replace(
-            /import\s['"]\.\.\/\.\.\/editor\/editor\.api\.js['"];?/,
-            ''
-          );
-          // 2. fillers/monaco-editor-core is same with editor.api, remove it
-          c = c.replace(
-            /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/,
-            '',
-          )
-          // 3. import('./foo') -> import('$relative/foo');
-          const relative = path.relative(path.dirname(id), path.dirname(importId));
-          c = c.replace(
-            /import\('\.\//,
-            `import('${relative}/`,
-          )
-         return c;
-        }));
+        const languageCodes = await Promise.all(
+          languageImportIds.map(async importId => {
+            let c = (await fs.readFile(importId)).toString();
+            // FIXME: use this.parse to handle this
+            // 1. fix circular dependency
+            c = c.replace(
+              /import\s['"]\.\.\/\.\.\/editor\/editor\.api\.js['"];?/,
+              ''
+            );
+            // 2. fillers/monaco-editor-core is same with editor.api, remove it
+            c = c.replace(
+              /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/,
+              ''
+            );
+            // 3. import('./foo') -> import('$relative/foo');
+            const relative = path.relative(
+              path.dirname(id),
+              path.dirname(importId)
+            );
+            c = c.replace(/import\('\.\//, `import('${relative}/`);
+            return c;
+          })
+        );
 
         arr = arr.concat(languageCodes);
 

@@ -13,9 +13,7 @@ export default {
     plugins: [
         postcss(),
         monaco({
-            esm: true,
             languages: ['json'],
-            pathPrefix: '/dist',
         }),
         resolve({
             mainFields: [

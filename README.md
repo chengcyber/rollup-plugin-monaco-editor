@@ -24,14 +24,16 @@ import commonjs from '@rollup/plugin-commonjs';
 import monaco from 'rollup-plugin-monaco-editor';
 
 export default {
+  output: {
+    format: 'es',
+    dir: 'dist',
+  },
   // ...other config
   plugins: [
     // ...other plugins
     // handle .css files
     postcss(),
     monaco({
-      esm: true, // true if you set output.format is esm
-      pathPrefix: '/dist', // mostly same as output.dir with a prefix slash
       languages: ['json'],
     }),
     resolve(),

@@ -36,6 +36,7 @@ describe('basic', () => {
     const { output } = await bundle.generate({
       exports: 'auto',
       format: 'esm',
+      dir: 'dist',
       sourcemap: false,
     });
 
@@ -74,6 +75,7 @@ describe('basic', () => {
     const { output } = await bundle.generate({
       exports: 'auto',
       format: 'esm',
+      dir: 'dist',
       sourcemap: false,
     });
 
