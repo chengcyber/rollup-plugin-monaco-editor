@@ -1,6 +1,6 @@
 import path from 'path';
 import { promises as fs } from 'fs';
-import type { EmitFile, Plugin } from 'rollup';
+import { EmitFile, Plugin } from 'rollup';
 import { languagesArr } from './languages';
 import { featuresArr } from './features';
 import { isWrappedId, FEAT_SUFFIX, wrapId } from './helpers';
@@ -10,23 +10,27 @@ type LanguageConfig = typeof languagesArr[number];
 type LanguagesById = {
   [K in LanguageConfig['label']]: LanguageConfig & { label: K };
 };
-const languagesById = languagesArr.reduce<LanguagesById>((languagesById, language) => {
-  (languagesById as any)[language.label] = language;
-  return languagesById;
-}, {} as LanguagesById);
+const languagesById = languagesArr.reduce<LanguagesById>(
+  (languagesById, language) => {
+    (languagesById as any)[language.label] = language;
+    return languagesById;
+  },
+  {} as LanguagesById
+);
 type LanguageKey = keyof LanguagesById;
 
 type FeatureConfig = typeof featuresArr[number];
 type FeaturesById = {
-  [K in FeatureConfig['label']]: FeatureConfig & { label: K }
-}
-const featuresById = featuresArr.reduce<FeaturesById>((featuresById, feature) => {
-  (featuresById as any)[feature.label] = feature;
-  return featuresById;
- }, {} as FeaturesById );
- type FeatureKey = keyof FeaturesById;
-
-
+  [K in FeatureConfig['label']]: FeatureConfig & { label: K };
+};
+const featuresById = featuresArr.reduce<FeaturesById>(
+  (featuresById, feature) => {
+    (featuresById as any)[feature.label] = feature;
+    return featuresById;
+  },
+  {} as FeaturesById
+);
+type FeatureKey = keyof FeaturesById;
 
 const MONACO_ENTRY_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]editor[/\\]editor.(api|main)/;
 // const MONACO_LANG_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]language[/\\]/;
@@ -64,7 +68,9 @@ function flatArr<T extends any>(items: T[]) {
   }, [] as any[]);
 }
 
-function getFeaturesIds<T extends string, R extends FeatureKey>(userFeatures: T[]): R[] {
+function getFeaturesIds<T extends string, R extends FeatureKey>(
+  userFeatures: T[]
+): R[] {
   function notContainedIn(arr: string[]) {
     return (element: string) => arr.indexOf(element) === -1;
   }
@@ -96,8 +102,9 @@ export interface MonacoPluginOptions {
 }
 
 function monaco(options: MonacoPluginOptions = {}): Plugin {
-  let languages = options.languages || Object.keys(languagesById) as LanguageKey[];
-  let features = getFeaturesIds((options.features || []));
+  let languages =
+    options.languages || (Object.keys(languagesById) as LanguageKey[]);
+  let features = getFeaturesIds(options.features || []);
   let isESM = false;
   if ('esm' in options) {
     isESM = !!options.esm;
