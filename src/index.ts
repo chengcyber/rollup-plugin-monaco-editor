@@ -301,6 +301,10 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
       if (id.startsWith('\0')) {
         return null;
       }
+      // other plugins may generate virtual module from monaco editor entry
+      if (!path.isAbsolute(id)) {
+        return null;
+      }
       if (MONACO_ENTRY_RE.test(id)) {
         hasMonacoEntry = true;
         // emit workers
