@@ -1,10 +1,13 @@
 import path from 'path';
 import { promises as fs } from 'fs';
 import { EmitFile, Plugin } from 'rollup';
+import { init } from 'es-module-lexer';
 import { languagesArr } from './languages';
 import { featuresArr } from './features';
 import { isWrappedId, FEAT_SUFFIX, wrapId } from './helpers';
 import { slash } from './slash';
+import { makeLegal } from './makeLegal';
+import { transformImports } from './transformImports';
 
 type LanguageConfig = typeof languagesArr[number];
 type LanguagesById = {
@@ -202,6 +205,9 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
       }
       return ret;
     },
+    async buildStart() {
+      await init;
+    },
     renderChunk(code, chunk, outputOptions) {
       if (!hasMonacoEntry) {
         return null;
@@ -316,6 +322,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         const languageImportIds = languagePaths.map(importPath =>
           resolveMonacoPath(importPath)
         );
+        let hasImportRegisterLanguage = false;
         const languageCodes = await Promise.all(
           languageImportIds.map(async importId => {
             let c = (await fs.readFile(importId)).toString();
@@ -330,15 +337,46 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
               /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/,
               ''
             );
-            // 3. import('./foo') -> import('$relative/foo');
-            const relative = path.relative(
-              path.dirname(id),
-              path.dirname(importId)
+            // 3. rename getMode to getXXXMode
+            c = c.replace(/getMode\(\)/g, () => {
+              const languageFilename = slash(importId)
+                .split('/')
+                .slice(-3, -1)
+                .join('_');
+              const langName = makeLegal(languageFilename);
+              return `get${langName}Mode()`;
+            });
+            // 4. dedup import { registerLanguage } from '../_.contribution.js';
+            c = c.replace(
+              `import { registerLanguage } from '../_.contribution.js';`,
+              () => {
+                hasImportRegisterLanguage = true;
+                return '';
+              }
             );
-            c = c.replace(/import\('\.\//, `import('${relative}/`);
+            // 5. import('./foo') -> import('$relative/foo');
+            c = await transformImports(c, spec => {
+              if (spec[0] === '.') {
+                const _spec = slash(
+                  path.relative(
+                    path.dirname(id),
+                    path.resolve(path.dirname(importId), spec)
+                  )
+                );
+                return _spec;
+              }
+              return spec;
+            });
+
             return c;
           })
         );
+
+        if (hasImportRegisterLanguage) {
+          arr = arr.concat(
+            `import { registerLanguage } from '../basic-languages/_.contribution.js';`
+          );
+        }
 
         arr = arr.concat(languageCodes);
 
