@@ -3,6 +3,13 @@ import { packageJsonPath } from './paths';
 import _ from 'lodash';
 import execa from 'execa';
 
+const args = [
+  '--regsitry=https://registry.npmjs.org',
+  '--no-save',
+  '--ignore-scripts',
+  'no-package-lock',
+];
+
 class MonacoEditorInstaller {
   private _initial_version: string;
   constructor() {
@@ -15,7 +22,7 @@ class MonacoEditorInstaller {
 
   install(version: string) {
     execa.commandSync(
-      `npm install --no-save monaco-editor@${version} --ignore-scripts --no-package-lock`,
+      `npm install monaco-editor@${version} ${args.join(' ')}`,
       {
         stdio: 'inherit',
       }
@@ -24,7 +31,7 @@ class MonacoEditorInstaller {
 
   dispose() {
     execa.commandSync(
-      `npm install --save-dev monaco-editor@${this._initial_version} --ignore-scripts --no-package-lock`
+      `npm install monaco-editor@${this._initial_version} ${args.join(' ')}`
     );
   }
 }

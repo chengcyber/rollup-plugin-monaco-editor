@@ -6159,8 +6159,8 @@ mkdirp@^1.0.4:
 
 monaco-editor@0.25.0:
   version "0.25.0"
-  resolved "http://bnpm.byted.org/monaco-editor/-/monaco-editor-0.25.0.tgz#4cbbe25adb4661a1673e4893cdc13dfa406b665e"
-  integrity sha1-TLviWttGYaFnPkiTzcE9+kBrZl4=
+  resolved "https://registry.npmjs.org/monaco-editor/-/monaco-editor-0.25.0.tgz#4cbbe25adb4661a1673e4893cdc13dfa406b665e"
+  integrity sha512-Lzk9CGIvFXly1J0s5t8SXk1+UleahGqcoHnSoPe2OBSrKhWLbR7Nvk2QQwaEzJQi4Wtbu5gou2qat1CAbvB82A==
 
 move-concurrently@^1.0.1:
   version "1.0.1"
