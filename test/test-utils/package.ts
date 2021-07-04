@@ -15,7 +15,7 @@ class MonacoEditorInstaller {
 
   install(version: string) {
     execa.commandSync(
-      `yarn add --dev monaco-editor@${version} --ignore-scripts`,
+      `npm install --no-save monaco-editor@${version} --ignore-scripts --no-package-lock`,
       {
         stdio: 'inherit',
       }
@@ -24,7 +24,7 @@ class MonacoEditorInstaller {
 
   dispose() {
     execa.commandSync(
-      `yarn add --dev monaco-editor@${this._initial_version} --ignore-scripts`
+      `npm install --save-dev monaco-editor@${this._initial_version} --ignore-scripts --no-package-lock`
     );
   }
 }
