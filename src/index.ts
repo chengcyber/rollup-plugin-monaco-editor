@@ -1,28 +1,96 @@
 import path from 'path';
-import { promises as fs } from 'fs';
+import fs, { promises as fsp } from 'fs';
 import { EmitFile, Plugin } from 'rollup';
 import { init } from 'es-module-lexer';
-import { languagesArr } from './languages';
-import { featuresArr } from './features';
 import { isWrappedId, FEAT_SUFFIX, wrapId } from './helpers';
 import { slash } from './slash';
 import { makeLegal } from './makeLegal';
 import { transformImports } from './transformImports';
+import semver from 'semver';
+import * as recast from 'recast';
 
-type LanguageConfig = typeof languagesArr[number];
-type LanguagesById = {
-  [K in LanguageConfig['label']]: LanguageConfig & { label: K };
-};
-const languagesById = languagesArr.reduce<LanguagesById>(
-  (languagesById, language) => {
-    (languagesById as any)[language.label] = language;
-    return languagesById;
-  },
-  {} as LanguagesById
-);
-type LanguageKey = keyof LanguagesById;
+const builders = recast.types.builders;
 
-type FeatureConfig = typeof featuresArr[number];
+const {
+  versionMatrix,
+}: {
+  versionMatrix: Record<string, string[]>;
+} = require('../plugin/versionMatrix');
+
+/**
+ * Features
+ */
+type FeaturesArr = {
+  label: string;
+  entry: string | string[];
+}[];
+let featuresArr: FeaturesArr = [];
+/**
+ * Languages
+ */
+type LanguagesArr = {
+  label: string;
+  entry: string | string[];
+  worker?: {
+    id: string;
+    entry: string;
+  };
+}[];
+let languagesArr: LanguagesArr = [];
+
+initMonaco();
+/**
+ * initialize monaco
+ */
+function initMonaco() {
+  const monacoEditorPackageJsonPath = require.resolve(
+    `monaco-editor/package.json`
+  );
+  const { version: monacoEditorVersion } = JSON.parse(
+    fs.readFileSync(monacoEditorPackageJsonPath, 'utf-8')
+  );
+
+  const monacoEditorVersionMatrixEntries = Object.entries(versionMatrix);
+  let resolvedPluginVersion: string | null = null;
+  for (const [
+    pluginVersion,
+    monacoEditorVersionRanges,
+  ] of monacoEditorVersionMatrixEntries) {
+    if (
+      monacoEditorVersionRanges.some(range => {
+        return semver.satisfies(monacoEditorVersion, range);
+      })
+    ) {
+      resolvedPluginVersion = pluginVersion;
+      break;
+    }
+  }
+  if (!resolvedPluginVersion) {
+    throw new Error(
+      `[rollup-plugin-monaco-editor] current monaco-editor version(${monacoEditorVersion}) are not supported, please file a issue at
+https://github.com/chengcyber/rollup-plugin-monaco-editor/issues`
+    );
+  }
+  const pluginVersionFolder = `../plugin/out/${resolvedPluginVersion.replace(
+    /\*/g,
+    '_x_'
+  )}`;
+  const featureJS = require(`${pluginVersionFolder}/features.js`) as {
+    featuresArr: FeaturesArr;
+  };
+  featuresArr = featureJS.featuresArr;
+  const languagesJS = require(`${pluginVersionFolder}/languages.js`) as {
+    languagesArr: LanguagesArr;
+  };
+  languagesArr = languagesJS.languagesArr;
+
+  return {
+    monacoEditorVersion,
+    resolvedPluginVersion,
+  };
+}
+
+type FeatureConfig = FeaturesArr[number];
 type FeaturesById = {
   [K in FeatureConfig['label']]: FeatureConfig & { label: K };
 };
@@ -34,6 +102,20 @@ const featuresById = featuresArr.reduce<FeaturesById>(
   {} as FeaturesById
 );
 type FeatureKey = keyof FeaturesById;
+
+type LanguageConfig = LanguagesArr[number];
+type LanguagesById = {
+  [K in LanguageConfig['label']]: LanguageConfig & { label: K };
+};
+type LanguageKey = keyof LanguagesById;
+
+const languagesById = languagesArr.reduce<LanguagesById>(
+  (languagesById, language) => {
+    (languagesById as any)[language.label] = language;
+    return languagesById;
+  },
+  {} as LanguagesById
+);
 
 const MONACO_ENTRY_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]editor[/\\]editor.(api|main)/;
 // const MONACO_LANG_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]language[/\\]/;
@@ -220,11 +302,42 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
       const { format } = outputOptions;
       if (containsMonacoEntryModule && !isWorkerChunk) {
         if (format === 'es' || isESM) {
-          // return new Worker(globals.MonacoEnvironment.getWorkerUrl(workerId, label));
-          // FIXME: use this.parse to handle this
+          /**
+           * use new Worker(xxx, { type: 'module' }) when esm
+           * Case 1: new Worker(globals.MonacoEnvironment.getWorkerUrl(workerId, label));
+           * Case 2: new Worker(workerUrl, { name: label });
+           */
           modifiedCode = code.replace(
-            /return new Worker\(globals\.MonacoEnvironment\.getWorkerUrl\(workerId, label\)\);/g,
-            `return new Worker(globals.MonacoEnvironment.getWorkerUrl(workerId, label), { type: 'module' });`
+            /(?<!\/\/.*)new Worker\((.*)\);/g,
+            ($0, $1) => {
+              const ast = recast.parse($0);
+              const expressionStatement = ast.program.body[0];
+              const args = expressionStatement.expression.arguments;
+              if (args.length === 1) {
+                args.push(
+                  builders.objectExpression([
+                    builders.property(
+                      'init',
+                      builders.identifier('type'),
+                      builders.literal('module')
+                    ),
+                  ])
+                );
+              } else if (args.length === 2) {
+                const secondArg = args[1];
+                if (secondArg.type === 'ObjectExpression') {
+                  secondArg.properties.push(
+                    builders.property(
+                      'init',
+                      builders.identifier('type'),
+                      builders.literal('module')
+                    )
+                  );
+                }
+              }
+              const modifiedCode = recast.print(ast).code;
+              return modifiedCode;
+            }
           );
         }
         if (chunk.isEntry) {
@@ -325,7 +438,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         let hasImportRegisterLanguage = false;
         const languageCodes = await Promise.all(
           languageImportIds.map(async importId => {
-            let c = (await fs.readFile(importId)).toString();
+            let c = (await fsp.readFile(importId)).toString();
             // FIXME: use this.parse to handle this
             // 1. fix circular dependency
             c = c.replace(
