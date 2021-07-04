@@ -7,7 +7,7 @@ const args = [
   '--regsitry=https://registry.npmjs.org',
   '--no-save',
   '--ignore-scripts',
-  'no-package-lock',
+  '--no-package-lock',
 ];
 
 class MonacoEditorInstaller {
