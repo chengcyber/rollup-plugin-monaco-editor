@@ -2,11 +2,16 @@
 
 > A rollup plugin to import monaco editor
 
-# Environment
+# Monaco Editor Version
 
-- monaco-editor: `0.21.2`
+For now, this plugin supports `0.21.*` ~ `0.25.*`.
 
-NOTE: different version of `monaco-editor` has different feature definitions. This plugin just tests with `0.21.2` version for now.
+The following versions have been tested locally:
+
+- `0.21.2`
+- `0.22.3`
+- `0.24.0`
+- `0.25.0`
 
 # Usage
 
@@ -18,7 +23,7 @@ This plugin should be used with other plugins. including
 
 ```javascript
 // rollup.config.js
-import resolve from '@rollup/plugin-node-resolve';
+import { nodeResolve } from '@rollup/plugin-node-resolve';
 import postcss from 'rollup-plugin-postcss';
 import commonjs from '@rollup/plugin-commonjs';
 import monaco from 'rollup-plugin-monaco-editor';
@@ -36,7 +41,7 @@ export default {
     monaco({
       languages: ['json'],
     }),
-    resolve(),
+    nodeResolve(),
     commonjs(),
   ],
 };
