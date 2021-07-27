@@ -23,7 +23,7 @@
   "scripts": {
     "start": "tsdx watch",
     "start:example": "http-server -c-1 example",
-    "generate": "ts-node ./build/generate_plugin.ts",
+    "generate": "(cd build && ts-node ./generate_plugin.ts)",
     "build": "tsdx build && node ./build/fix_dist_index.js",
     "build:example": "(cd example && rm -rf dist && rollup -c rollup.config.js)",
     "test": "tsdx test",
