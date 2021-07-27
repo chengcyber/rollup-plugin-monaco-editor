@@ -4,7 +4,7 @@
 
 # Monaco Editor Version
 
-For now, this plugin supports `0.21.*` ~ `0.25.*`.
+For now, this plugin supports `monaco-editor@0.21.*` ~ `0.26.*`.
 
 The following versions have been tested locally:
 
@@ -12,6 +12,7 @@ The following versions have been tested locally:
 - `0.22.3`
 - `0.24.0`
 - `0.25.0`
+- `0.26.1`
 
 # Usage
 
@@ -49,11 +50,13 @@ export default {
 
 # Example
 
+> NOTE: pnpm@6 is used to manage this package
+
 ```
-yarn install
-yarn build
-yarn build:example
-yarn start:example
+pnpm install
+pnpm build
+pnpm build:example
+pnpm start:example
 ```
 
 visit `http://localhost:8080` to see the simple demo.
@@ -61,7 +64,7 @@ visit `http://localhost:8080` to see the simple demo.
 # Development
 
 ```
-yarn start
+pnpm start
 ```
 
 # LICENSE

@@ -3,6 +3,7 @@ import { rollup } from 'rollup';
 import resolve from '@rollup/plugin-node-resolve';
 import postcss from 'rollup-plugin-postcss';
 import commonjs from '@rollup/plugin-commonjs';
+import slash from 'slash';
 import { monacoEditorInstaller } from './package';
 import { projectFolder, testFolder } from './paths';
 export interface CreateTestParmas {
@@ -63,12 +64,18 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParmas) => {
         ],
       });
 
-      const { output } = await bundle.generate({
+      const bundled = await bundle.generate({
         exports: 'auto',
         format: 'esm',
         dir: 'dist',
         sourcemap: false,
       });
+      expect(bundled).not.toBeNull();
+      if (!bundled) {
+        return;
+      }
+
+      const { output } = bundled;
 
       let isContainEditorWorker = false;
       let isContainJsonWorker = false;
@@ -76,10 +83,10 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParmas) => {
       const jsonWorker = 'monaco-editor/esm/vs/language/json/json.worker.js';
 
       for (const { fileName } of output) {
-        if (fileName === editorWorker) {
+        if (isFileNameEqual(fileName, editorWorker)) {
           isContainEditorWorker = true;
         }
-        if (fileName === jsonWorker) {
+        if (isFileNameEqual(fileName, jsonWorker)) {
           isContainJsonWorker = true;
         }
       }
@@ -115,12 +122,18 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParmas) => {
         ],
       });
 
-      const { output } = await bundle.generate({
+      const bundled = await bundle.generate({
         exports: 'auto',
         format: 'esm',
         dir: 'dist',
         sourcemap: false,
       });
+      expect(bundled).not.toBeNull();
+      if (!bundled) {
+        return;
+      }
+
+      const { output } = bundled;
 
       let isContainEditorWorker = false;
       let isContainJsonWorker = false;
@@ -128,10 +141,10 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParmas) => {
       const jsonWorker = 'monaco-editor/esm/vs/language/json/json.worker.js';
 
       for (const { fileName } of output) {
-        if (fileName === editorWorker) {
+        if (isFileNameEqual(fileName, editorWorker)) {
           isContainEditorWorker = true;
         }
-        if (fileName === jsonWorker) {
+        if (isFileNameEqual(fileName, jsonWorker)) {
           isContainJsonWorker = true;
         }
       }
@@ -159,12 +172,17 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParmas) => {
         ],
       });
 
-      const { output } = await bundle.generate({
+      const bundled = await bundle.generate({
         exports: 'auto',
         format: 'esm',
         dir: 'dist',
         sourcemap: false,
       });
+      expect(bundled).not.toBeNull();
+      if (!bundled) {
+        return;
+      }
+      const { output } = bundled;
 
       expect(output.length).toBe(1);
       expect(output[0].fileName).toBe('no-monaco-editor.js');
@@ -172,3 +190,9 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParmas) => {
     });
   });
 };
+
+function isFileNameEqual(a: string, b: string) {
+  const _a = slash(a);
+  const _b = slash(b);
+  return _a === _b;
+}

@@ -213,10 +213,6 @@ exports.languagesArr = [
         entry: 'vs/basic-languages/python/python.contribution'
     },
     {
-        label: 'qsharp',
-        entry: 'vs/basic-languages/qsharp/qsharp.contribution'
-    },
-    {
         label: 'r',
         entry: 'vs/basic-languages/r/r.contribution'
     },
@@ -271,10 +267,6 @@ exports.languagesArr = [
     {
         label: 'sophia',
         entry: 'vs/basic-languages/sophia/sophia.contribution'
-    },
-    {
-        label: 'sparql',
-        entry: 'vs/basic-languages/sparql/sparql.contribution'
     },
     {
         label: 'sql',

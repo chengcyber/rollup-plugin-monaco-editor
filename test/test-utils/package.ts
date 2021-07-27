@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { packageJsonPath } from './paths';
+import { packageJsonPath, projectFolder } from './paths';
 import _ from 'lodash';
 import execa from 'execa';
 
@@ -7,7 +7,7 @@ const args = [
   '--regsitry=https://registry.npmjs.org',
   '--no-save',
   '--ignore-scripts',
-  '--no-package-lock',
+  '--no-lockfile',
 ];
 
 class MonacoEditorInstaller {
@@ -21,18 +21,23 @@ class MonacoEditorInstaller {
   }
 
   install(version: string) {
-    execa.commandSync(
-      `npm install monaco-editor@${version} ${args.join(' ')}`,
-      {
-        stdio: 'inherit',
-      }
-    );
+    try {
+      execa.commandSync(
+        `npm install monaco-editor@${version} ${args.join(' ')}`,
+        {
+          stdio: 'inherit',
+        }
+      );
+    } catch (e) {
+      console.error(e);
+      throw e;
+    }
   }
 
   dispose() {
-    execa.commandSync(
-      `npm install monaco-editor@${this._initial_version} ${args.join(' ')}`
-    );
+    execa.commandSync(`pnpm install`, {
+      cwd: projectFolder,
+    });
   }
 }
 

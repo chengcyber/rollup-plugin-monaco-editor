@@ -1,6 +1,7 @@
 // https://github.com/microsoft/monaco-editor-webpack-plugin#version-matrix
 const versionMatrix = {
-  '4.*.*': ['0.25.*'],
+  '4.*.*': ['0.26.*'],
+  '4.0.*': ['0.25.*'],
   '3.*.*': ['0.22.*', '0.23.*', '0.24.*'],
   '2.*.*': ['0.21.*'],
   // FIXME: support these versions

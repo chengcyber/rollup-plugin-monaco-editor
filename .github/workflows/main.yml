@@ -7,7 +7,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        node: ['10.x', '12.x', '14.x']
+        node: [
+            # '10.x', # pnpm@6 needs node >=12. See https://github.com/pnpm/action-setup/issues/18
+            '12.x',
+            '14.x',
+          ]
         os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
@@ -19,8 +23,19 @@ jobs:
         with:
           node-version: ${{ matrix.node }}
 
-      - name: Install deps and build (with cache)
-        uses: bahmutov/npm-install@v1
+      - name: Cache pnpm modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-
+
+      - name: Install deps
+        uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.9.1
+          run_install: true
 
       - name: Lint
         run: yarn lint
