@@ -4,7 +4,7 @@
 
 # Monaco Editor Version
 
-For now, this plugin supports `monaco-editor@0.21.*` ~ `0.26.*`.
+For now, this plugin supports `monaco-editor@0.21.*` ~ `0.27.*`.
 
 The following versions have been tested locally:
 
@@ -13,6 +13,7 @@ The following versions have been tested locally:
 - `0.24.0`
 - `0.25.0`
 - `0.26.1`
+- `0.27.0`
 
 # Usage
 
