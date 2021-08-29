@@ -3,13 +3,13 @@
 import tempy from 'tempy';
 import execa from 'execa';
 import semver from 'semver';
-import fs from 'fs-extra';
 import path from 'path';
 
-import { versionMatrix } from '../plugin/versionMatrix';
+import { versionMapping } from '../plugin/versionMapping';
+import { generate } from './import_editor';
 
 const projectFolder = path.resolve(__dirname, '..');
-const WEBPACK_PLUGIN_NAME = 'monaco-editor-webpack-plugin';
+const MONACO_EDITOR_NAME = 'monaco-editor';
 const localPluginFolder = path.resolve(projectFolder, 'plugin');
 const tempdir = tempy.directory({
   prefix: 'rollup_plugin_monaco_editor_build',
@@ -27,50 +27,34 @@ async function main() {
 
 async function generateFeatures() {
   const { stdout } = execa.commandSync(
-    `npm info ${WEBPACK_PLUGIN_NAME} versions`
+    `npm info ${MONACO_EDITOR_NAME} versions`
   );
-  const versionsStr = String(stdout)
-    .trim()
-    .replace(/'/g, `"`);
+  const versionsStr = String(stdout).trim().replace(/'/g, `"`);
   const versions = JSON.parse(versionsStr);
 
-  for (const webpackPluginVersionRange of Object.keys(versionMatrix)) {
-    const webpackPluginVersion = semver.maxSatisfying(
+  for (const editorVersionRange of Object.keys(versionMapping)) {
+    const targetEditorVersion = semver.maxSatisfying(
       versions,
-      webpackPluginVersionRange
+      editorVersionRange
     );
-    if (!webpackPluginVersion) {
-      console.warn(
-        `${webpackPluginVersionRange} not found in ${versions.join(', ')}`
-      );
+    if (!targetEditorVersion) {
+      console.warn(`${editorVersionRange} not found in ${versions.join(', ')}`);
       continue;
     }
 
     execa.commandSync(
-      `npm install ${WEBPACK_PLUGIN_NAME}@${webpackPluginVersion}`,
+      `npm install ${MONACO_EDITOR_NAME}@${targetEditorVersion}`,
       {
         cwd: tempdir,
         shell: true,
         stdio: 'inherit',
       }
     );
-    const files = ['features.js', 'languages.js'];
-    for (const f of files) {
-      const filePath = require.resolve(`${WEBPACK_PLUGIN_NAME}/out/${f}`, {
-        paths: [tempdir],
-      });
-      fs.moveSync(
-        filePath,
-        path.resolve(
-          localPluginFolder,
-          'out',
-          webpackPluginVersionRange.replace(/\*/g, '_x_'),
-          f
-        ),
-        {
-          overwrite: true,
-        }
-      );
-    }
+    const distFolder = path.resolve(
+      localPluginFolder,
+      'out',
+      editorVersionRange.replace(/\*/g, '_x_')
+    );
+    await generate(tempdir, distFolder);
   }
 }

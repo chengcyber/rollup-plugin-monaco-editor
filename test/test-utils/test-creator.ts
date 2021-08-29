@@ -6,7 +6,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import slash from 'slash';
 import { monacoEditorInstaller } from './package';
 import { projectFolder, testFolder } from './paths';
-export interface CreateTestParmas {
+export interface CreateTestParams {
   monacoEditorVersion: string;
 }
 
@@ -14,24 +14,18 @@ afterAll(() => {
   monacoEditorInstaller.dispose();
 });
 
-export const createTest = ({ monacoEditorVersion }: CreateTestParmas) => {
+export const createTest = ({ monacoEditorVersion }: CreateTestParams) => {
   describe(`monaco-editor ${monacoEditorVersion} - basic`, () => {
     let monaco: any = null;
-    beforeAll(() => {
-      return new Promise<void>(async (resolve, reject) => {
-        console.log(`[start] test monaco-editor ${monacoEditorVersion}`);
-        // prepare monaco-editor
-        monacoEditorInstaller.install(monacoEditorVersion);
-        try {
-          const monacoIndexPath = path.resolve(projectFolder, 'src/index.ts');
-          delete require.cache[monacoIndexPath];
-          monaco = await import('../../src').then(m => m.default);
-        } catch (e) {
-          console.error(e.message);
-          reject(e);
-        }
-        resolve();
-      });
+    beforeAll(async done => {
+      console.log(`[start] test monaco-editor ${monacoEditorVersion}`);
+      // prepare monaco-editor
+      monacoEditorInstaller.install(monacoEditorVersion);
+      const monacoIndexPath = path.resolve(projectFolder, 'src/index.ts');
+      delete require.cache[monacoIndexPath];
+      monaco = await import('../../src').then(m => m.default);
+      resolve();
+      done();
     });
     afterAll(() => {
       console.log(`[end] test monaco-editor ${monacoEditorVersion}`);
