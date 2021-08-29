@@ -57,7 +57,7 @@ function initMonaco() {
     monacoEditorVersionRanges,
   ] of monacoEditorVersionMappingEntries) {
     if (
-      monacoEditorVersionRanges.some((range) => {
+      monacoEditorVersionRanges.some(range => {
         return semver.satisfies(monacoEditorVersion, range);
       })
     ) {
@@ -112,11 +112,9 @@ const languagesById = languagesArr.reduce<LanguagesById>(
   {} as LanguagesById
 );
 
-const MONACO_ENTRY_RE =
-  /monaco-editor[/\\]esm[/\\]vs[/\\]editor[/\\]editor.(api|main)/;
+const MONACO_ENTRY_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]editor[/\\]editor.(api|main)/;
 // const MONACO_LANG_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]language[/\\]/;
-const MONACO_BASE_WORKER_RE =
-  /monaco-editor[/\\]esm[/\\]vs[/\\]base[/\\]worker[/\\]defaultWorkerFactory/;
+const MONACO_BASE_WORKER_RE = /monaco-editor[/\\]esm[/\\]vs[/\\]base[/\\]worker[/\\]defaultWorkerFactory/;
 
 const EDITOR_MODULE = {
   label: 'editorWorkerService',
@@ -159,8 +157,8 @@ function getFeaturesIds<T extends string, R extends FeatureKey>(
   let featuresIds: unknown[] = [];
   if (userFeatures.length) {
     const excludedFeatures = userFeatures
-      .filter((f) => f[0] === '!')
-      .map((f) => f.slice(1));
+      .filter(f => f[0] === '!')
+      .map(f => f.slice(1));
     if (excludedFeatures.length) {
       featuresIds = Object.keys(featuresById).filter(
         notContainedIn(excludedFeatures)
@@ -200,8 +198,8 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
     isESM = !!options.esm;
   }
 
-  const languageConfigs = coalesce(languages.map((id) => languagesById[id]));
-  const featureConfigs = coalesce(features.map((id) => featuresById[id]));
+  const languageConfigs = coalesce(languages.map(id => languagesById[id]));
+  const featureConfigs = coalesce(features.map(id => featuresById[id]));
 
   type MonacoModules = (
     | LanguageConfig
@@ -212,7 +210,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
     .concat(languageConfigs)
     .concat(featureConfigs);
   const workers: { label: string; id: string; entry: string }[] = [];
-  modules.forEach((module) => {
+  modules.forEach(module => {
     if ('worker' in module && module.worker) {
       workers.push({
         label: module.label,
@@ -223,10 +221,10 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
   });
 
   const languagePaths = flatArr(
-    coalesce(languageConfigs.map((language) => language.entry))
+    coalesce(languageConfigs.map(language => language.entry))
   );
   const featurePaths = flatArr(
-    coalesce(featureConfigs.map((feature) => feature.entry))
+    coalesce(featureConfigs.map(feature => feature.entry))
   );
 
   const workerPaths: Record<string, string> = {};
@@ -259,7 +257,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
       const mc = inputOptions.moduleContext;
       if ('function' === typeof mc) {
         // func
-        ret.moduleContext = (id) => {
+        ret.moduleContext = id => {
           if (slash(id).indexOf('node_modules/monaco-editor') >= 0) {
             return 'self';
           }
@@ -267,7 +265,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         };
       } else if (mc && 'object' === typeof mc) {
         // { id: string }
-        ret.moduleContext = (id) => {
+        ret.moduleContext = id => {
           if (slash(id).indexOf('node_modules/monaco-editor') >= 0) {
             return 'self';
           }
@@ -275,7 +273,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         };
       } else {
         // nullish
-        ret.moduleContext = (id) => {
+        ret.moduleContext = id => {
           if (slash(id).indexOf('node_modules/monaco-editor') >= 0) {
             return 'self';
           }
@@ -292,9 +290,9 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         return null;
       }
       let modifiedCode: string | null = null;
-      const containsMonacoEntryModule = Array.from(this.getModuleIds()).some(
-        (id) => MONACO_ENTRY_RE.test(id)
-      );
+      const containsMonacoEntryModule = Array.from(
+        this.getModuleIds()
+      ).some(id => MONACO_ENTRY_RE.test(id));
       const isWorkerChunk = Object.values(workerPaths).includes(chunk.fileName);
       const { format } = outputOptions;
       if (containsMonacoEntryModule && !isWorkerChunk) {
@@ -380,7 +378,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
           const arr = [
             ...(globals
               ? Object.keys(globals).map(
-                  (key) => `self[${JSON.stringify(key)}] = ${globals[key]};`
+                  key => `self[${JSON.stringify(key)}] = ${globals[key]};`
                 )
               : []),
             modifiedCode || code,
@@ -403,11 +401,11 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
     },
     load(id) {
       if (isWrappedId(id, FEAT_SUFFIX)) {
-        const featureImportIds = featurePaths.map((importPath) =>
+        const featureImportIds = featurePaths.map(importPath =>
           resolveMonacoPath(importPath)
         );
         const featureImports = featureImportIds
-          .map((id) => `import ${JSON.stringify(id)};`)
+          .map(id => `import ${JSON.stringify(id)};`)
           .join('\n');
         return `${featureImports}`;
       }
@@ -429,12 +427,12 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         let arr = [`import ${JSON.stringify(wrapId(id, FEAT_SUFFIX))};`, code];
 
         // append languages code to editor.api
-        const languageImportIds = languagePaths.map((importPath) =>
+        const languageImportIds = languagePaths.map(importPath =>
           resolveMonacoPath(importPath)
         );
         let hasImportRegisterLanguage = false;
         const languageCodes = await Promise.all(
-          languageImportIds.map(async (importId) => {
+          languageImportIds.map(async importId => {
             let c = (await fsp.readFile(importId)).toString();
             // FIXME: use this.parse to handle this
             // 1. fix circular dependency
@@ -465,7 +463,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
               }
             );
             // 5. import('./foo') -> import('$relative/foo');
-            c = await transformImports(c, (spec) => {
+            c = await transformImports(c, spec => {
               if (spec[0] === '.') {
                 const _spec = slash(
                   path.relative(
