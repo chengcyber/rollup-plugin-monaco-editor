@@ -4,7 +4,7 @@ import _ from 'lodash';
 import execa from 'execa';
 
 const args = [
-  '--regsitry=https://registry.npmjs.org',
+  '--registry=https://registry.npmjs.org',
   '--no-save',
   '--ignore-scripts',
   '--no-lockfile',

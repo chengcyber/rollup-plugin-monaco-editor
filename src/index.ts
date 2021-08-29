@@ -12,10 +12,10 @@ import * as recast from 'recast';
 const builders = recast.types.builders;
 
 const {
-  versionMatrix,
+  versionMapping,
 }: {
-  versionMatrix: Record<string, string[]>;
-} = require('../plugin/versionMatrix');
+  versionMapping: Record<string, string[]>;
+} = require('../plugin/versionMapping');
 
 /**
  * Features
@@ -50,44 +50,39 @@ function initMonaco() {
     fs.readFileSync(monacoEditorPackageJsonPath, 'utf-8')
   );
 
-  const monacoEditorVersionMatrixEntries = Object.entries(versionMatrix);
-  let resolvedPluginVersion: string | null = null;
+  const monacoEditorVersionMappingEntries = Object.entries(versionMapping);
+  let resolvedMonacoEditorVersion: string | null = null;
   for (const [
-    pluginVersion,
+    editorVersion,
     monacoEditorVersionRanges,
-  ] of monacoEditorVersionMatrixEntries) {
+  ] of monacoEditorVersionMappingEntries) {
     if (
       monacoEditorVersionRanges.some(range => {
         return semver.satisfies(monacoEditorVersion, range);
       })
     ) {
-      resolvedPluginVersion = pluginVersion;
+      resolvedMonacoEditorVersion = editorVersion;
       break;
     }
   }
-  if (!resolvedPluginVersion) {
+  if (!resolvedMonacoEditorVersion) {
     throw new Error(
       `[rollup-plugin-monaco-editor] current monaco-editor version(${monacoEditorVersion}) are not supported, please file a issue at
 https://github.com/chengcyber/rollup-plugin-monaco-editor/issues`
     );
   }
-  const pluginVersionFolder = `../plugin/out/${resolvedPluginVersion.replace(
+  const editorInfoVersionFolder = `../plugin/out/${resolvedMonacoEditorVersion.replace(
     /\*/g,
     '_x_'
   )}`;
-  const featureJS = require(`${pluginVersionFolder}/features.js`) as {
+  const featureJS = require(`${editorInfoVersionFolder}/features.js`) as {
     featuresArr: FeaturesArr;
   };
   featuresArr = featureJS.featuresArr;
-  const languagesJS = require(`${pluginVersionFolder}/languages.js`) as {
+  const languagesJS = require(`${editorInfoVersionFolder}/languages.js`) as {
     languagesArr: LanguagesArr;
   };
   languagesArr = languagesJS.languagesArr;
-
-  return {
-    monacoEditorVersion,
-    resolvedPluginVersion,
-  };
 }
 
 type FeatureConfig = FeaturesArr[number];
