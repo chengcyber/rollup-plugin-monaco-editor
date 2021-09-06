@@ -481,13 +481,15 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         );
 
         if (hasImportRegisterLanguage) {
-          const basicContribPath = resolveMonacoPath('vs/basic-languages/_.contribution');
+          const basicContribPath = resolveMonacoPath(
+            'vs/basic-languages/_.contribution'
+          );
           let basicContribCode = await fsp.readFile(basicContribPath, 'utf-8');
           // fillers/monaco-editor-core is same with editor.api, remove it
           basicContribCode = basicContribCode.replace(
-              /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/,
-              ''
-          )
+            /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/,
+            ''
+          );
           arr = arr.concat(basicContribCode);
         }
 
