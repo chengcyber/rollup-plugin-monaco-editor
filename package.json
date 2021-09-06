@@ -33,7 +33,9 @@
     "analyze": "size-limit --why"
   },
   "husky": {
-    "hooks": {}
+    "hooks": {
+      "pre-commit": "tsdx lint"
+    }
   },
   "prettier": {
     "printWidth": 80,
