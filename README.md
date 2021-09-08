@@ -51,12 +51,12 @@ export default {
 
 # Plugin Options
 
-Pluign options can be passed in to `rollup-plugin-monaco-editor`. They can be used to generate a smaller editor bundle by selecting only certain languages or only certain editor features:
+Plugin options can be passed in to `rollup-plugin-monaco-editor`. They can be used to generate a smaller editor bundle by selecting only certain languages or only certain editor features:
 
 ## `languages`
 
 Type: `string[]`  
-Default: All avaiable languages depends on the version of `monaco-editor` installed.
+Default: All available languages depends on the version of `monaco-editor` installed.
 
 Example:
 
@@ -72,7 +72,7 @@ monaco({
 ## `features`
 
 Type: `string`  
-Default: All avaiable features depends on the version of `monaco-editor` installed.
+Default: All available features depends on the version of `monaco-editor` installed.
 
 Example:
 
