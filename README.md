@@ -49,6 +49,52 @@ export default {
 };
 ```
 
+# Plugin Options
+
+Pluign options can be passed in to `rollup-plugin-monaco-editor`. They can be used to generate a smaller editor bundle by selecting only certain languages or only certain editor features:
+
+## `languages`
+
+Type: `string[]`  
+Default: All avaiable languages depends on the version of `monaco-editor` installed.
+
+Example:
+
+```js
+monaco({
+  languages: ['json'],
+})
+monaco({
+  languages: ['html', 'css', 'javascript'],
+})
+```
+
+## `features`
+
+Type: `string`  
+Default: All avaiable features depends on the version of `monaco-editor` installed.
+
+Example:
+
+```js
+monaco({
+  features: ['contextmenu'],
+})
+monaco({
+  features: ['rename'],
+})
+```
+
+## `esm`
+
+Type: `boolean`  
+Default: `true` if `rollup.outputOptions.format` is `esm` or `es`, otherwise `false`.
+
+## `pathPrefix`
+
+Type: `string`  
+Default: `rollup.outputOptions.dir` with leading slash.
+
 # Example
 
 > NOTE: pnpm@6 is used to manage this package
