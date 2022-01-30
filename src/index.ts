@@ -11,12 +11,6 @@ import * as recast from 'recast';
 
 const builders = recast.types.builders;
 
-const {
-  versionMapping,
-}: {
-  versionMapping: Record<string, string[]>;
-} = require('../plugin/versionMapping');
-
 /**
  * Features
  */
@@ -46,9 +40,55 @@ function initMonaco() {
   const monacoEditorPackageJsonPath = require.resolve(
     `monaco-editor/package.json`
   );
+
+  try {
+    initMonacoByMetadata({
+      monacoEditorPackageJsonPath,
+    });
+  } catch {
+    initMonacoLegacy({
+      monacoEditorPackageJsonPath,
+    });
+  }
+}
+
+interface InitMonacoByMetadataParams {
+  monacoEditorPackageJsonPath: string;
+}
+
+function initMonacoByMetadata({
+  monacoEditorPackageJsonPath,
+}: InitMonacoByMetadataParams) {
+  const metadataFilepath = path.join(
+    path.dirname(monacoEditorPackageJsonPath),
+    'esm/metadata.js'
+  );
+  const metadata = require(metadataFilepath);
+  if (!metadata.features || !metadata.languages) {
+    throw new Error('features or languages not found in metadata');
+  }
+  featuresArr = metadata.features;
+  languagesArr = metadata.languages;
+}
+
+interface InitMonacoLegacyParams {
+  monacoEditorPackageJsonPath: string;
+}
+
+/**
+ * initialize monaco-editor < 0.31.0
+ */
+function initMonacoLegacy({
+  monacoEditorPackageJsonPath,
+}: InitMonacoLegacyParams) {
   const { version: monacoEditorVersion } = JSON.parse(
     fs.readFileSync(monacoEditorPackageJsonPath, 'utf-8')
   );
+  const {
+    versionMapping,
+  }: {
+    versionMapping: Record<string, string[]>;
+  } = require('../plugin/versionMapping');
 
   const monacoEditorVersionMappingEntries = Object.entries(versionMapping);
   let resolvedMonacoEditorVersion: string | null = null;
@@ -445,6 +485,11 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
               /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/,
               ''
             );
+            // 2.2 dedup import * as monaco_editor_core_star from "../../editor/editor.api.js";
+            c = c.replace(
+              /import\s+\*\s+as\s+monaco_editor_core_star\s+from\s+["']\.\.\/\.\.\/editor\/editor\.api\.js["'];?/,
+              ''
+            );
             // 3. rename getMode to getXXXMode
             c = c.replace(/getMode\(\)/g, () => {
               const languageFilename = slash(importId)
@@ -456,7 +501,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
             });
             // 4. dedup import { registerLanguage } from '../_.contribution.js';
             c = c.replace(
-              `import { registerLanguage } from '../_.contribution.js';`,
+              /import\s+{\s+registerLanguage\s+}\s+from\s+['"]\.\.\/_\.contribution\.js['"];?/,
               () => {
                 hasImportRegisterLanguage = true;
                 return '';
