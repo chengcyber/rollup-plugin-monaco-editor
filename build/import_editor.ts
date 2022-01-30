@@ -33,7 +33,9 @@ async function generate(projectFolder: string, distFolder: string) {
     projectFolder,
     'node_modules/monaco-editor'
   );
+  console.log('generate languages...')
   await generateLanguages();
+  console.log('generate features...')
   await generateFeatures();
 
   async function generateLanguages() {

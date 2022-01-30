@@ -4,6 +4,7 @@ import tempy from 'tempy';
 import execa from 'execa';
 import semver from 'semver';
 import path from 'path';
+import fs from 'fs';
 
 import { versionMapping } from '../plugin/versionMapping';
 import { generate } from './import_editor';
@@ -42,18 +43,26 @@ async function generateFeatures() {
       continue;
     }
 
+    const distFolder = path.resolve(
+      localPluginFolder,
+      'out',
+      editorVersionRange.replace(/\*/g, '_x_')
+    );
+
+    if (!process.env.FORCE && fs.existsSync(distFolder)) {
+      console.log(`Skip ${targetEditorVersion} because ${distFolder} exists.`)
+      continue;
+    }
+
+    console.log(`insatll ${targetEditorVersion}...`)
+
     execa.commandSync(
-      `npm install ${MONACO_EDITOR_NAME}@${targetEditorVersion}`,
+      `npm install ${MONACO_EDITOR_NAME}@${targetEditorVersion} --no-audit`,
       {
         cwd: tempdir,
         shell: true,
         stdio: 'inherit',
       }
-    );
-    const distFolder = path.resolve(
-      localPluginFolder,
-      'out',
-      editorVersionRange.replace(/\*/g, '_x_')
     );
     await generate(tempdir, distFolder);
   }
