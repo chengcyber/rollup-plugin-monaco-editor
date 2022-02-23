@@ -471,7 +471,10 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         // emit workers
         emitWorkerChunks(this.emitFile);
 
-        let arr = [`import ${JSON.stringify(wrapId(id, FEAT_SUFFIX))};`, code];
+        let arr: string[] = [
+          `import ${JSON.stringify(wrapId(id, FEAT_SUFFIX))};`,
+          code,
+        ];
 
         // append languages code to editor.api
         const languageImportIds = languagePaths.map(importPath =>
@@ -481,23 +484,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         const languageCodes = await Promise.all(
           languageImportIds.map(async importId => {
             let c = (await fsp.readFile(importId)).toString();
-            // FIXME: use this.parse to handle this
-            // 1. fix circular dependency
-            c = c.replace(
-              /import\s['"]\.\.\/\.\.\/editor\/editor\.api\.js['"];?/,
-              ''
-            );
-            // 2. fillers/monaco-editor-core is same with editor.api, remove it
-            c = c.replace(
-              /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/,
-              ''
-            );
-            // 2.2 dedup import * as monaco_editor_core_star from "../../editor/editor.api.js";
-            c = c.replace(
-              /import\s+\*\s+as\s+monaco_editor_core_star\s+from\s+["']\.\.\/\.\.\/editor\/editor\.api\.js["'];?/,
-              ''
-            );
-            // 3. rename getMode to getXXXMode
+            // 1. rename getMode to getXXXMode
             c = c.replace(/getMode\(\)/g, () => {
               const languageFilename = slash(importId)
                 .split('/')
@@ -506,7 +493,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
               const langName = makeLegal(languageFilename);
               return `get${langName}Mode()`;
             });
-            // 4. dedup import { registerLanguage } from '../_.contribution.js';
+            // 2. dedup import { registerLanguage } from '../_.contribution.js';
             c = c.replace(
               /import\s+{\s+registerLanguage\s+}\s+from\s+['"]\.\.\/_\.contribution\.js['"];?/,
               () => {
@@ -514,7 +501,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
                 return '';
               }
             );
-            // 5. import('./foo') -> import('$relative/foo');
+            // 3. import('./foo') -> import('$relative/foo');
             c = await transformImports(c, spec => {
               if (spec[0] === '.') {
                 const _spec = slash(
@@ -532,22 +519,69 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
           })
         );
 
+        // mock the dist code src/fillers/monaco-editor-core.ts
+        arr.push('var monaco_editor_core_exports = api;');
+
         if (hasImportRegisterLanguage) {
-          const basicContribPath = resolveMonacoPath(
+          const basicContribPath: string = resolveMonacoPath(
             'vs/basic-languages/_.contribution'
           );
-          let basicContribCode = await fsp.readFile(basicContribPath, 'utf-8');
-          // fillers/monaco-editor-core is same with editor.api, remove it
-          basicContribCode = basicContribCode.replace(
-            /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/,
-            ''
+          const basicContribCode: string = await fsp.readFile(
+            basicContribPath,
+            'utf-8'
           );
           arr = arr.concat(basicContribCode);
         }
 
         arr = arr.concat(languageCodes);
 
-        const transformedCode: string = arr.join('\n');
+        let transformedCode: string = arr.join('\n');
+        /**
+         * Fix circular dependencies to transformed code
+         * FIXME: use this.parse to handle this
+         */
+        // 1. dedup editor.api.js
+        //   import "../../editor/editor.api.js";
+        //   import "../editor/editor.api.js";
+        //   import "editor/editor.api.js";
+        transformedCode = transformedCode.replace(
+          /import\s['"](?:(?:\.\.\/)+editor\/)?editor\.api\.js['"];?/g,
+          ''
+        );
+
+        // 2. fillers/monaco-editor-core is same with editor.api, remove it
+        transformedCode = transformedCode.replace(
+          /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/g,
+          ''
+        );
+
+        /**
+         * // 2.2 monaco_editor_core_star
+         * // src/fillers/monaco-editor-core.ts
+         * var monaco_editor_core_exports = {};
+         * __markAsModule(monaco_editor_core_exports);
+         * __reExport(monaco_editor_core_exports, monaco_editor_core_star);
+         * import * as monaco_editor_core_star from "../editor/editor.api.js";
+         * import * as monaco_editor_core_star from "../../editor/editor.api.js";
+         * import * as monaco_editor_core_star from "editor.api.js";
+         */
+        transformedCode = transformedCode.replace(
+          /var monaco_editor_core_exports = {};/g,
+          ''
+        );
+        transformedCode = transformedCode.replace(
+          /__markAsModule\(monaco_editor_core_exports\);/g,
+          ''
+        );
+        transformedCode = transformedCode.replace(
+          /__reExport\(monaco_editor_core_exports, monaco_editor_core_star\);/g,
+          ''
+        );
+        transformedCode = transformedCode.replace(
+          /import\s+\*\s+as\s+monaco_editor_core_star\s+from\s+["'](?:(?:\.\.\/)+editor\/)?editor\.api\.js["'];?/g,
+          ''
+        );
+
         const map = new MagicString(transformedCode).generateMap({
           hires: true,
         });
