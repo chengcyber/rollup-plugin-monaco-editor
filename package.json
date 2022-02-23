@@ -95,6 +95,7 @@
   },
   "dependencies": {
     "es-module-lexer": "^0.3.26",
+    "magic-string": "^0.25.7",
     "recast": "^0.20.4",
     "regenerator-runtime": "^0.13.9",
     "semver": "^7.3.5"

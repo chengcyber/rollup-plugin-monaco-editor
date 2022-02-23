@@ -8,6 +8,7 @@ import { makeLegal } from './makeLegal';
 import { transformImports } from './transformImports';
 import semver from 'semver';
 import * as recast from 'recast';
+import MagicString from 'magic-string';
 
 const builders = recast.types.builders;
 
@@ -428,7 +429,13 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         }
       }
       if (modifiedCode) {
-        return modifiedCode;
+        const map = new MagicString(modifiedCode).generateMap({
+          hires: true,
+        });
+        return {
+          code: modifiedCode,
+          map,
+        };
       }
       return null;
     },
@@ -540,9 +547,14 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
 
         arr = arr.concat(languageCodes);
 
+        const transformedCode: string = arr.join('\n');
+        const map = new MagicString(transformedCode).generateMap({
+          hires: true,
+        });
+
         return {
-          code: arr.join('\n'),
-          map: null,
+          code: transformedCode,
+          map,
         };
       }
       return null;
