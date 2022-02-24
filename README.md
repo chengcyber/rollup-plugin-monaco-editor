@@ -58,7 +58,7 @@ Plugin options can be passed in to `rollup-plugin-monaco-editor`. They can be us
 
 ## `languages`
 
-Type: `string[]`  
+Type: `string[]`
 Default: All available languages depends on the version of `monaco-editor` installed.
 
 Example:
@@ -66,15 +66,15 @@ Example:
 ```js
 monaco({
   languages: ['json'],
-})
+});
 monaco({
   languages: ['html', 'css', 'javascript'],
-})
+});
 ```
 
 ## `features`
 
-Type: `string`  
+Type: `string`
 Default: All available features depends on the version of `monaco-editor` installed.
 
 Example:
@@ -82,20 +82,20 @@ Example:
 ```js
 monaco({
   features: ['contextmenu'],
-})
+});
 monaco({
   features: ['rename'],
-})
+});
 ```
 
 ## `esm`
 
-Type: `boolean`  
+Type: `boolean`
 Default: `true` if `rollup.outputOptions.format` is `esm` or `es`, otherwise `false`.
 
 ## `pathPrefix`
 
-Type: `string`  
+Type: `string`
 Default: `rollup.outputOptions.dir` with leading slash.
 
 # Example
@@ -119,4 +119,4 @@ pnpm start
 
 # LICENSE
 
-MIT
+MIT @[chengcyber](https://github.com/chengcyber)
