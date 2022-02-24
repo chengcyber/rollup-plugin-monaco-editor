@@ -4,31 +4,43 @@ import resolve from '@rollup/plugin-node-resolve';
 import postcss from 'rollup-plugin-postcss';
 import commonjs from '@rollup/plugin-commonjs';
 import slash from 'slash';
-import { monacoEditorInstaller } from './package';
-import { projectFolder, testFolder } from './paths';
+import tempy from 'tempy';
+import { testFolder } from './paths';
+import monaco from '../../src';
+import execa from 'execa';
 export interface CreateTestParams {
   monacoEditorVersion: string;
 }
 
-afterAll(() => {
-  monacoEditorInstaller.dispose();
-});
+// afterAll(() => {
+//   monacoEditorInstaller.dispose();
+// });
+
+jest.setTimeout(60000);
 
 export const createTest = ({ monacoEditorVersion }: CreateTestParams) => {
   describe(`monaco-editor ${monacoEditorVersion} - basic`, () => {
-    let monaco: any = null;
+    let tempDir: string = '';
     beforeAll(async done => {
-      console.log(`[start] test monaco-editor ${monacoEditorVersion}`);
-      // prepare monaco-editor
-      monacoEditorInstaller.install(monacoEditorVersion);
-      const monacoIndexPath = path.resolve(projectFolder, 'src/index.ts');
-      delete require.cache[monacoIndexPath];
-      monaco = await import('../../src').then(m => m.default);
-      resolve();
+      tempDir = tempy.directory({
+        prefix: 'rollup_plugin_monaco_editor_test',
+      });
+      console.log(
+        `[start] test monaco-editor ${monacoEditorVersion} under ${tempDir}`
+      );
+      await prepareTest({
+        cwd: tempDir,
+        monacoEditorVersion,
+      });
       done();
     });
     afterAll(() => {
-      console.log(`[end] test monaco-editor ${monacoEditorVersion}`);
+      console.log(
+        `[end] test monaco-editor ${monacoEditorVersion} under ${tempDir}`
+      );
+    });
+    beforeEach(() => {
+      process.chdir(tempDir);
     });
 
     it('should work with json', async done => {
@@ -88,7 +100,7 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParams) => {
       expect(isContainEditorWorker).toBe(true);
       expect(isContainJsonWorker).toBe(true);
       done();
-    }, 60000);
+    });
 
     it('should work with all languages', async done => {
       const bundle = await rollup({
@@ -189,4 +201,22 @@ function isFileNameEqual(a: string, b: string) {
   const _a = slash(a);
   const _b = slash(b);
   return _a === _b;
+}
+
+interface IPrepareTestParams {
+  cwd: string;
+  monacoEditorVersion: string;
+}
+
+async function prepareTest({ cwd, monacoEditorVersion }: IPrepareTestParams) {
+  const execaOptions: execa.Options = {
+    cwd,
+    shell: true,
+    stdio: 'inherit',
+  };
+  await execa(`pnpm init -y`, execaOptions);
+  await execa(
+    `pnpm install monaco-editor@${monacoEditorVersion}`,
+    execaOptions
+  );
 }

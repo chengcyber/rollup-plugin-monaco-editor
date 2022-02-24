@@ -550,8 +550,10 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
         );
 
         // 2. fillers/monaco-editor-core is same with editor.api, remove it
+        //  import { Emitter, languages } from '../language/json/fillers/monaco-editor-core.js';
+        //  import from './fillers/monaco-editor.core.js'
         transformedCode = transformedCode.replace(
-          /import\s+.*from ['"]\.\/fillers\/monaco-editor-core\.js['"];?/g,
+          /import\s+.*from ['"](?:.*)\/fillers\/monaco-editor-core\.js['"];?/g,
           ''
         );
 
