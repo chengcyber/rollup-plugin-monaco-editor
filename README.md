@@ -98,6 +98,13 @@ Default: `true` if `rollup.outputOptions.format` is `esm` or `es`, otherwise `fa
 Type: `string`
 Default: `rollup.outputOptions.dir` with leading slash.
 
+## `sourcemap`
+
+Type: `boolean`
+Default: true
+
+You can set `sourcemap` to `false` to disable generate sourcemap. It makes build faster.
+
 # Example
 
 > NOTE: pnpm@6 is used to manage this package

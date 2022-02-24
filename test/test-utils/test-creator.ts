@@ -6,8 +6,9 @@ import commonjs from '@rollup/plugin-commonjs';
 import slash from 'slash';
 import tempy from 'tempy';
 import { testFolder } from './paths';
-import monaco from '../../src';
+import monaco, { MonacoPluginOptions } from '../../src';
 import execa from 'execa';
+import { InputOptions } from 'rollup';
 export interface CreateTestParams {
   monacoEditorVersion: string;
 }
@@ -17,6 +18,38 @@ export interface CreateTestParams {
 // });
 
 jest.setTimeout(60000);
+
+const getRollupInputOptions = (
+  input: string,
+  monacoPluginOptions: MonacoPluginOptions = {}
+): InputOptions => {
+  // The default value of sourcemap is true, disable it to speed up most tests
+  if (monacoPluginOptions.sourcemap !== true) {
+    monacoPluginOptions.sourcemap = false;
+  }
+  return {
+    input,
+    preserveEntrySignatures: 'strict',
+    plugins: [
+      monaco(monacoPluginOptions),
+      postcss(),
+      resolve({
+        mainFields: [
+          'exports',
+          'browser:module',
+          'browser',
+          'module',
+          'main',
+        ].filter(Boolean),
+        extensions: ['.mjs', '.cjs', '.js', '.json'], // Default: [ '.mjs', '.js', '.json', '.node' ]
+        // whether to prefer built-in modules (e.g. `fs`, `path`) or local ones with the same names
+        preferBuiltins: true, // Default: true
+        dedupe: [], // userDefinedRollup.dedupe,
+      }),
+      commonjs(),
+    ],
+  };
+};
 
 export const createTest = ({ monacoEditorVersion }: CreateTestParams) => {
   describe(`monaco-editor ${monacoEditorVersion} - basic`, () => {
@@ -44,31 +77,12 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParams) => {
     });
 
     it('should work with json', async done => {
-      const bundle = await rollup({
-        input: path.resolve(testFolder, 'fixtures/basic.js'),
-        preserveEntrySignatures: 'strict',
-        plugins: [
-          monaco({
-            // features: [],
-            languages: ['json'],
-          }),
-          postcss(),
-          resolve({
-            mainFields: [
-              'exports',
-              'browser:module',
-              'browser',
-              'module',
-              'main',
-            ].filter(Boolean),
-            extensions: ['.mjs', '.cjs', '.js', '.json'], // Default: [ '.mjs', '.js', '.json', '.node' ]
-            // whether to prefer built-in modules (e.g. `fs`, `path`) or local ones with the same names
-            preferBuiltins: true, // Default: true
-            dedupe: [], // userDefinedRollup.dedupe,
-          }),
-          commonjs(),
-        ],
-      });
+      const bundle = await rollup(
+        getRollupInputOptions(path.resolve(testFolder, 'fixtures/basic.js'), {
+          // features: [],
+          languages: ['json'],
+        })
+      );
 
       const bundled = await bundle.generate({
         exports: 'auto',
@@ -103,30 +117,11 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParams) => {
     });
 
     it('should work with all languages', async done => {
-      const bundle = await rollup({
-        input: path.resolve(testFolder, 'fixtures/basic.js'),
-        preserveEntrySignatures: 'strict',
-        plugins: [
-          monaco({
-            // features: [],
-          }),
-          postcss(),
-          resolve({
-            mainFields: [
-              'exports',
-              'browser:module',
-              'browser',
-              'module',
-              'main',
-            ].filter(Boolean),
-            extensions: ['.mjs', '.cjs', '.js', '.json'], // Default: [ '.mjs', '.js', '.json', '.node' ]
-            // whether to prefer built-in modules (e.g. `fs`, `path`) or local ones with the same names
-            preferBuiltins: true, // Default: true
-            dedupe: [], // userDefinedRollup.dedupe,
-          }),
-          commonjs(),
-        ],
-      });
+      const bundle = await rollup(
+        getRollupInputOptions(path.resolve(testFolder, 'fixtures/basic.js'), {
+          // features: [],
+        })
+      );
 
       const bundled = await bundle.generate({
         exports: 'auto',
@@ -162,21 +157,18 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParams) => {
       // TODO: test relative path resolution
       // TODO: test replaced getMode()
       done();
-    }, 60000);
+    });
 
     it('should not emit when no monaco-editor entry', async done => {
-      const bundle = await rollup({
-        input: path.resolve(testFolder, 'fixtures/no-monaco-editor.js'),
-        plugins: [
-          monaco({
+      const bundle = await rollup(
+        getRollupInputOptions(
+          path.resolve(testFolder, 'fixtures/no-monaco-editor.js'),
+          {
             // features: [],
             languages: ['json'],
-          }),
-          postcss(),
-          resolve(),
-          commonjs(),
-        ],
-      });
+          }
+        )
+      );
 
       const bundled = await bundle.generate({
         exports: 'auto',
@@ -192,6 +184,39 @@ export const createTest = ({ monacoEditorVersion }: CreateTestParams) => {
 
       expect(output.length).toBe(1);
       expect(output[0].fileName).toBe('no-monaco-editor.js');
+      done();
+    });
+
+    it('should generate sourcemap correctly', async done => {
+      let hasSourcemapBrokenWarn: boolean = false;
+      const bundle = await rollup({
+        ...getRollupInputOptions(
+          path.resolve(testFolder, 'fixtures/basic.js'),
+          {
+            // features: [],
+            languages: ['json'],
+            sourcemap: true,
+          }
+        ),
+        onwarn: warning => {
+          if (warning.code === 'SOURCEMAP_BROKEN') {
+            hasSourcemapBrokenWarn = true;
+          }
+        },
+      });
+
+      const bundled = await bundle.generate({
+        exports: 'auto',
+        format: 'esm',
+        dir: 'dist',
+        sourcemap: true,
+      });
+      expect(bundled).not.toBeNull();
+      if (!bundled) {
+        return;
+      }
+      expect(hasSourcemapBrokenWarn).toBe(false);
+
       done();
     });
   });
