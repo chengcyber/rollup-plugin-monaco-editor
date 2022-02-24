@@ -17,7 +17,8 @@ export interface CreateTestParams {
 //   monacoEditorInstaller.dispose();
 // });
 
-jest.setTimeout(60000);
+// loose timeout to 100 secs.
+jest.setTimeout(100000);
 
 const getRollupInputOptions = (
   input: string,
