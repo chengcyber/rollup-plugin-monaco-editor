@@ -17,6 +17,7 @@ specifiers:
   glob: ^7.1.7
   http-server: ^0.12.3
   husky: ^4.3.0
+  magic-string: ^0.25.7
   monaco-editor: 0.31.1
   recast: ^0.20.4
   regenerator-runtime: ^0.13.9
@@ -34,6 +35,7 @@ specifiers:
 
 dependencies:
   es-module-lexer: 0.3.26
+  magic-string: 0.25.7
   recast: 0.20.5
   regenerator-runtime: 0.13.9
   semver: 7.3.5
@@ -6765,7 +6767,6 @@ packages:
     resolution: {integrity: sha512-4CrMT5DOHTDk4HYDlzmwu4FVCcIYI8gauveasrdCu2IKIFOJ3f0v/8MDGJCDL9oD2ppz/Av1b0Nj345H9M+XIA==}
     dependencies:
       sourcemap-codec: 1.4.8
-    dev: true
 
   /make-dir/2.1.0:
     resolution: {integrity: sha512-LS9X+dc8KLxXCb8dni79fLIIUA5VyZoyjSMCwTluaXA0o27cCK0bhXkpgw+sTXVpPy/lSO57ilRixqk0vDmtRA==}
@@ -9427,7 +9428,6 @@ packages:
 
   /sourcemap-codec/1.4.8:
     resolution: {integrity: sha512-9NykojV5Uih4lgo5So5dtw+f0JgJX30KCNI8gwhz2J9A15wD0Ml6tjHKwf6fTSa6fAdVBdZeNOs9eJ71qCk8vA==}
-    dev: true
 
   /spawndamnit/2.0.0:
     resolution: {integrity: sha512-j4JKEcncSjFlqIwU5L/rp2N5SIPsdxaRsIv678+TZxZ0SRDJTm8JrxJMjE/XuiEZNEir3S8l0Fa3Ke339WI4qA==}

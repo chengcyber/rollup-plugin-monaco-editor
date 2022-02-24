@@ -26,7 +26,7 @@
     "generate": "(cd build && ts-node ./generate_plugin.ts)",
     "build": "tsdx build && node ./build/fix_dist_index.js",
     "build:example": "(cd example && rimraf dist && rollup -c rollup.config.js)",
-    "test": "tsdx test --runInBand",
+    "test": "tsdx test",
     "lint": "tsdx lint",
     "prepare": "npm run build",
     "pub": "changeset publish",
@@ -95,6 +95,7 @@
   },
   "dependencies": {
     "es-module-lexer": "^0.3.26",
+    "magic-string": "^0.25.7",
     "recast": "^0.20.4",
     "regenerator-runtime": "^0.13.9",
     "semver": "^7.3.5"
