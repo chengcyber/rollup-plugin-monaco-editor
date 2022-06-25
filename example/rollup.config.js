@@ -32,7 +32,7 @@ export default {
       ],
     }),
     monaco({
-      languages: ['json'],
+      // languages: ['json'],
     }),
     resolve({
       mainFields: [
