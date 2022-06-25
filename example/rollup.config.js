@@ -1,7 +1,9 @@
 import path from 'path';
+import fs from 'fs-extra';
 import resolve from '@rollup/plugin-node-resolve';
 import postcss from 'rollup-plugin-postcss';
 import commonjs from '@rollup/plugin-commonjs';
+import postcssUrl from 'postcss-url';
 import monaco from '../dist/rollup-plugin-monaco-editor.esm';
 
 export default {
@@ -12,9 +14,25 @@ export default {
     sourcemap: true,
   },
   plugins: [
-    postcss(),
+    postcss({
+      plugins: [
+        postcssUrl({
+          url: (asset) => {
+            if (!/\.ttf$/.test(asset.url)) return asset.url;
+            const distPath = path.join(process.cwd(), 'dist');
+            const distFontsPath = path.join(distPath, 'fonts');
+            fs.ensureDirSync(distFontsPath);
+            const targetFontPath = path.join(distFontsPath, asset.pathname);
+            fs.copySync(asset.absolutePath, targetFontPath);
+            const relativePath = path.relative(process.cwd(), targetFontPath);
+            const publicPath = '/';
+            return `${publicPath}${relativePath}`;
+          },
+        }),
+      ],
+    }),
     monaco({
-      // languages: ['json'],
+      languages: ['json'],
     }),
     resolve({
       mainFields: [
