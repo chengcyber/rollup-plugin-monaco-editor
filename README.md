@@ -2,11 +2,13 @@
 
 > A rollup plugin to import monaco editor
 
+Online demo: https://chengcyber.github.io/rollup-plugin-monaco-editor/
+
 # Monaco Editor Version
 
-For now, this plugin supports `monaco-editor@0.21.*` ~ `0.31.*`.
+For now, this plugin supports `monaco-editor@^0.21.*`.
 
-The following versions have been tested:
+The following versions have been tested locally:
 
 - `0.21.2`
 - `0.22.3`
@@ -17,6 +19,7 @@ The following versions have been tested:
 - `0.29.1`
 - `0.30.1`
 - `0.31.1`
+- `0.34.0`
 
 # Usage
 

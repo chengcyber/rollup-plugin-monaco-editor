@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monaco Editor Example - Hover provider</title>
+  </head>
+  <body>
+    <a href="/">Home</a>
+    <p>Hover provider example</p>
+    <div id="container" style="height: 300px;"></div>
+    <script type="module">
+      import { initMonacoHoverProvider } from '../dist/index.js';
+      initMonacoHoverProvider();
+    </script>
+  </body>
+</html>
