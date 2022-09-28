@@ -33,6 +33,7 @@ export default {
     }),
     monaco({
       // languages: ['json'],
+      pathPrefix: './dist',
     }),
     resolve({
       mainFields: [

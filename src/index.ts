@@ -399,7 +399,7 @@ function monaco(options: MonacoPluginOptions = {}): Plugin {
             if (!dir) {
               this.warn('rollup outputOptions.dir is missing');
             } else {
-              pathPrefix = dir;
+              pathPrefix = dir as string;
               if (!pathPrefix.startsWith('/')) {
                 pathPrefix = `/${pathPrefix}`;
               }
